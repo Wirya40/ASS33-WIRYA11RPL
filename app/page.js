@@ -22,7 +22,7 @@ import {
 const API_BASE = "http://localhost:5000/students";
 
 
-// ✅ Helper to normalize student data (for both API + local)
+
 function mapStudentForTable(raw) {
   return {
     id: raw.id ?? raw._id ?? raw.studentId ?? Math.random().toString(36).slice(2, 9),
@@ -63,19 +63,15 @@ export default function StudentsQuizPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
 
-  // Pagination state
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
 
-  // ✅ Fetch students (GET)
+ 
   const fetchStudents = async () => {
   setLoading(true);
   try {
-    // const res = await fetch(API_BASE);
-    // if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    // const data = await res.json();
-
-    // ✅ TEMP MOCK DATA
+  
     const data = [
       { id: "1", name: "Alice", major: "Computer Science", class: "XII RPL 1", email: "alice@gmail.com", phone: "081234567" },
       { id: "2", name: "Budi", major: "Multimedia", class: "XI MM 2", email: "budi@gmail.com", phone: "089876543" },
@@ -98,7 +94,7 @@ export default function StudentsQuizPage() {
     fetchStudents();
   }, []);
 
-  // ✅ Search filter
+
   const filteredStudents = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return students;
@@ -109,7 +105,7 @@ export default function StudentsQuizPage() {
     });
   }, [students, searchTerm]);
 
-  // ---------- CRUD Handlers ----------
+
 
   const handleAdd = () => {
     setEditing(null);
@@ -120,7 +116,7 @@ export default function StudentsQuizPage() {
   const handleCreateSubmit = async (values) => {
     try {
       setLoading(true);
-      await new Promise((r) => setTimeout(r, 800)); // simulate delay
+      await new Promise((r) => setTimeout(r, 800)); 
 
       const newStudent = normalizeStudent({
         ...values,
@@ -156,7 +152,7 @@ export default function StudentsQuizPage() {
     if (!editing) return;
     try {
       setLoading(true);
-      await new Promise((r) => setTimeout(r, 800)); // simulate delay
+      await new Promise((r) => setTimeout(r, 800)); 
 
       const updatedStudent = { ...editing, ...values };
       setStudents((prev) =>
@@ -210,11 +206,11 @@ export default function StudentsQuizPage() {
       if (editing) await handleEditSubmit(values);
       else await handleCreateSubmit(values);
     } catch {
-      // handled by AntD
+     
     }
   };
 
-  // ✅ Table columns
+ 
   const columns = [
     {
       title: "Name",
@@ -270,7 +266,7 @@ export default function StudentsQuizPage() {
     },
   ];
 
-  // ✅ Pagination logic
+ 
   const totalRecords = filteredStudents.length;
   const pagedData = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -379,7 +375,7 @@ export default function StudentsQuizPage() {
     destroyOnHidden
   >
     <Form
-      form={form} // ✅ this connects the useForm() instance
+      form={form} 
       layout="vertical"
       onFinish={editing ? handleEditSubmit : handleCreateSubmit}
       initialValues={editing || {}}
