@@ -15,6 +15,8 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 
 const API_URL = "/api/students";
+const [currentPage, setCurrentPage] = useState(1);
+
 
 export default function StudentsPage() {
   const [students, setStudents] = useState([]);
@@ -25,18 +27,15 @@ export default function StudentsPage() {
   const router = useRouter();
 
  
-  const [search, setSearch] = useState("");
-
- 
   const fetchStudents = async () => {
     setLoading(true);
     try {
       const res = await axios.get(API_URL);
 
+      
       const sorted = [...res.data].sort((a, b) => b.id - a.id);
-      setStudents(sorted);
 
-      message.success("Students loaded successfully");
+      setStudents(sorted);
     } catch (error) {
       console.error("Fetch Error:", error);
       message.error("Failed to load students");
@@ -49,17 +48,13 @@ export default function StudentsPage() {
     fetchStudents();
   }, []);
 
-  
-  const filteredStudents = students.filter((s) => {
-  const q = search.toLowerCase();
-  return (
-    (s.name || "").toLowerCase().includes(q) ||
-    (s.nis || "").toLowerCase().includes(q) ||
-    (s.major || "").toLowerCase().includes(q) ||
-    (s.class_name || "").toLowerCase().includes(q)
-  );
-});
-
+ 
+  const openModal = (student = null) => {
+    setEditingStudent(student);
+    form.resetFields();
+    if (student) form.setFieldsValue(student);
+    setIsModalOpen(true);
+  };
 
  
   const handleSubmit = async () => {
@@ -67,28 +62,22 @@ export default function StudentsPage() {
       const values = await form.validateFields();
 
       if (editingStudent) {
-        try {
-          await axios.put(API_URL, { id: editingStudent.id, ...values });
-          message.success("Student updated successfully");
-          await fetchStudents();
-        } catch (error) {
-          setStudents((prev) =>
-            prev.map((s) =>
-              s.id === editingStudent.id ? { ...s, ...values } : s
-            )
-          );
-          message.warning("API update failed — updated locally instead");
-        }
+        // UPDATE
+        await axios.put(API_URL, { id: editingStudent.id, ...values });
+        message.success("Student updated");
+        fetchStudents();
       } else {
-        try {
-          await axios.post(API_URL, values);
-          message.success("Student added successfully");
-          await fetchStudents();
-        } catch (error) {
-          const newId = Math.max(...students.map((s) => s.id), 0) + 1;
-          setStudents((prev) => [{ id: newId, ...values }, ...prev]);
-          message.warning("API add failed — added locally instead");
-        }
+      
+        const res = await axios.post(API_URL, values);
+        const newStudent = res.data;
+
+        setStudents(prev => [newStudent, ...prev]);
+
+
+setCurrentPage(1);
+
+message.success("Student added");
+
       }
 
       setIsModalOpen(false);
@@ -102,23 +91,16 @@ export default function StudentsPage() {
   const handleDelete = async (id) => {
     try {
       await axios.delete(API_URL, { data: { id } });
-      message.success("Student deleted successfully");
-      fetchStudents();
+
+      setStudents(prev => prev.filter(s => s.id !== id));
+
+      message.success("Student deleted");
     } catch (error) {
-      setStudents((prev) => prev.filter((s) => s.id !== id));
-      message.warning("API delete failed — deleted locally instead");
+      console.error("Delete Error:", error);
+      message.error("Failed to delete student");
     }
   };
 
- 
-  const openModal = (student = null) => {
-    setEditingStudent(student);
-    form.resetFields();
-    if (student) form.setFieldsValue(student);
-    setIsModalOpen(true);
-  };
-
- 
   const columns = [
     { title: "ID", dataIndex: "id", width: 60 },
     { title: "NIS", dataIndex: "nis" },
@@ -127,19 +109,17 @@ export default function StudentsPage() {
     { title: "Major", dataIndex: "major" },
     { title: "Status", dataIndex: "status" },
     {
-      title: "Actions",
+      title: "Action",
       render: (_, record) => (
         <>
           <Button type="link" onClick={() => openModal(record)}>
             Edit
           </Button>
           <Popconfirm
-            title="Are you sure to delete?"
+            title="Are you sure?"
             onConfirm={() => handleDelete(record.id)}
           >
-            <Button danger type="link">
-              Delete
-            </Button>
+            <Button danger type="link">Delete</Button>
           </Popconfirm>
         </>
       ),
@@ -153,35 +133,30 @@ export default function StudentsPage() {
       </div>
     );
 
-  
   return (
     <div style={{ padding: 24 }}>
-      <h1>Data Murid</h1>
-
-     
-      <Input
-        placeholder="Search name, NIS, class, major..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={{ marginBottom: 15, width: 300 }}
-        allowClear
-      />
+      <h1>Student Management</h1>
 
       <Button
         type="primary"
         onClick={() => openModal()}
-        style={{ marginBottom: 20, marginLeft: 10 }}
+        style={{ marginBottom: 20 }}
       >
         Add Student
       </Button>
 
       <Table
-        columns={columns}
-        dataSource={filteredStudents}
-        rowKey="id"
-        bordered
-        pagination={{ pageSize: 6 }}
-      />
+  columns={columns}
+  dataSource={students}
+  rowKey="id"
+  bordered
+  pagination={{
+    current: currentPage,
+    pageSize: 6,
+    onChange: (page) => setCurrentPage(page),
+  }}
+/>
+
 
       <Modal
         title={editingStudent ? "Edit Student" : "Add Student"}
@@ -199,11 +174,7 @@ export default function StudentsPage() {
             <Input />
           </Form.Item>
 
-          <Form.Item
-            name="class_name"
-            label="Class"
-            rules={[{ required: true }]}
-          >
+          <Form.Item name="class_name" label="Class" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
 
